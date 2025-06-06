@@ -3,75 +3,56 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 from PIL import Image, UnidentifiedImageError
 import numpy as np
-import openai
 import matplotlib.pyplot as plt
 import seaborn as sns
-import base64
-import io
 import os
-import time
 from datetime import datetime
-import gdown  # added gdown import
-
-# Optional: for advanced visualization
-import cv2
-import random
+import google.generativeai as genai  # Gemini AI
 
 # ---------------------------- CONFIGURATION ----------------------------
-openai.api_key = "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"
+GEMINI_API_KEY = "AIzaSyBpkV8iEDeoNPDp1Tfhh4sWpBAhIF-Yhn8"  # Replace this with your Gemini API key
+genai.configure(api_key=GEMINI_API_KEY)
 
 st.set_page_config(page_title="🧠 AI Powered Product Analysis Dashboard", layout="wide")
 
 # ---------------------------- TITLE & HEADER ----------------------------
 st.title("🧠 AI Powered Product Analysis Dashboard")
 st.markdown("""
-Upload a **bottle image** and receive predictions for:
+Upload a *bottle image* and receive predictions for:
 - 🧾 Master Category
 - 🧴 Subtype
 - 🔬 Morphological Features
 - 🧪 Functional Factors
 - 🌍 Real World Usage Traits
 
-Use the integrated **AI assistant** for expert insights, and download a **PDF report**.
+Use the integrated *AI assistant* for expert insights.
 """)
 
 # ---------------------------- SIDEBAR ----------------------------
 st.sidebar.header("📁 Navigation")
 section = st.sidebar.radio("Go to", [
-    "Upload & Predict", "Compare Bottles", "ChatGPT Assistant", "Feedback Form"])
+    "Upload & Predict", "Compare Bottles", "Gemini AI Assistant", "Feedback Form"])
 
 # ---------------------------- MODEL LOADING ----------------------------
 @st.cache_resource
 def load_all_models():
     try:
-        # Ensure models/ folder exists
-        os.makedirs("models", exist_ok=True)
-
-        # Mapping of model names to Google Drive file IDs
-        model_files = {
-            "MasterCategories_model.keras": "19JTau3vko39Bs8fDDEUlA7VGri1p-9Gk",
-            "Subtypes_model.keras": "1s7A7S5bjm4toSCZNhkTcG8w7J6OrHvQ-",
-            "MorphologicalFeatures_model.keras": "1v63XBBN6H11p0ZcbTVbpFegD7SOsvHE4",
-            "FunctionalFactors_model.keras": "1NfqRYKlTMDpEOgQ_vij8YCNfRN6UO4qU",
-            "RealWorldUsage_model.keras": "1-kSSr7QwCzwP0Djbf8adxQpnHH58qaWU"  
+        model_dir = r"C:\Users\deepa\Downloads"  # Local path for model files
+        model_paths = {
+            "master": os.path.join(model_dir, "MasterCategories_model.keras"),
+            "subtype": os.path.join(model_dir, "Subtypes_model.keras"),
+            "morph": os.path.join(model_dir, "MorphologicalFeatures_model.keras"),
+            "factors": os.path.join(model_dir, "FunctionalFactors_model.keras"),
+            "realworld": os.path.join(model_dir, "RealWorldUsage_model.keras")
         }
 
-        # Download each model if it doesn’t exist
-        for filename, file_id in model_files.items():
-            filepath = os.path.join("models", filename)
-            if not os.path.exists(filepath):
-                url = f"https://drive.google.com/uc?id={file_id}"
-                print(f"Downloading {filename} from Google Drive...")
-                gdown.download(url, filepath, quiet=False)
+        for key, path in model_paths.items():
+            if not os.path.exists(path):
+                st.error(f"❌ Missing model file: {path}")
+                st.stop()
 
-        # Load the models
-        return {
-            "master": load_model("models/MasterCategories_model.keras"),
-            "subtype": load_model("models/Subtypes_model.keras"),
-            "morph": load_model("models/MorphologicalFeatures_model.keras"),
-            "factors": load_model("models/FunctionalFactors_model.keras"),
-            "realworld": load_model("models/RealWorldUsage_model.keras")
-        }
+        return {key: load_model(path) for key, path in model_paths.items()}
+
     except Exception as e:
         st.error(f"❌ Model loading failed: {e}")
         st.stop()
@@ -112,7 +93,7 @@ def predict_all_models(image: Image.Image):
 def show_prediction_output(predictions):
     st.subheader("🔍 AI Predictions")
     for key, result in predictions.items():
-        st.markdown(f"**{key.title().replace('_', ' ')}:** {result['prediction']} ({result['confidence']*100:.2f}%)")
+        st.markdown(f"{key.title().replace('_', ' ')}:** {result['prediction']} ({result['confidence']*100:.2f}%)")
 
     st.markdown("---")
     st.subheader("📊 Confidence Bar Charts")
@@ -135,7 +116,7 @@ if section == "Upload & Predict":
                 predictions = predict_all_models(image)
             show_prediction_output(predictions)
 
-            # Save uploaded image and prediction for future use
+            # Save image
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             os.makedirs("uploads", exist_ok=True)
             image.save(f"uploads/bottle_{timestamp}.png")
@@ -160,37 +141,28 @@ elif section == "Compare Bottles":
             pred2 = predict_all_models(img2)
 
             st.subheader("📈 Side-by-Side Comparison")
-            comparison_keys = list(pred1.keys())
-            for key in comparison_keys:
+            for key in pred1.keys():
                 st.markdown(f"### {key.title()}")
-                st.write(f"**Bottle 1:** {pred1[key]['prediction']} ({pred1[key]['confidence']*100:.2f}%)")
-                st.write(f"**Bottle 2:** {pred2[key]['prediction']} ({pred2[key]['confidence']*100:.2f}%)")
+                st.write(f"*Bottle 1:* {pred1[key]['prediction']} ({pred1[key]['confidence']*100:.2f}%)")
+                st.write(f"*Bottle 2:* {pred2[key]['prediction']} ({pred2[key]['confidence']*100:.2f}%)")
 
         except Exception as e:
             st.error(f"❌ Error during comparison: {e}")
 
-# ---------------------------- SECTION: AI CHAT ASSISTANT ----------------------------
-elif section == "ChatGPT Assistant":
-    st.header("🤖 Ask AI Assistant")
+# ---------------------------- SECTION: GEMINI AI ASSISTANT ----------------------------
+elif section == "Gemini AI Assistant":
+    st.header("🤖 Ask Gemini AI Assistant")
     question = st.text_input("Ask about your product, functionality, or suggestions:")
 
     if question:
         with st.spinner("Thinking..."):
             try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a product analysis expert specialized in bottles and packaging design."},
-                        {"role": "user", "content": question}
-                    ],
-                    temperature=0.7,
-                    max_tokens=250
-                )
-                reply = response["choices"][0]["message"]["content"]
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                response = model.generate_content(question)
                 st.success("AI Assistant Response:")
-                st.markdown(reply)
+                st.markdown(response.text)
             except Exception as e:
-                st.error(f"❌ Error contacting ChatGPT: {e}")
+                st.error(f"❌ Error using Gemini AI: {e}")
 
 # ---------------------------- SECTION: FEEDBACK ----------------------------
 elif section == "Feedback Form":
@@ -205,4 +177,4 @@ elif section == "Feedback Form":
 
 # ---------------------------- FOOTER ----------------------------
 st.markdown("---")
-st.caption("AI-Powered Dashboard by Darshan Reddy • © 2025")
+st.caption("AI-Powered Dashboard by Gagan Gowda • © 2025")
