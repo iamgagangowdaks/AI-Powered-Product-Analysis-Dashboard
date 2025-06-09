@@ -8,6 +8,7 @@ import seaborn as sns
 import os
 from datetime import datetime
 import google.generativeai as genai  # Gemini AI
+import gdown
 
 # ---------------------------- CONFIGURATION ----------------------------
 GEMINI_API_KEY = "AIzaSyBpkV8iEDeoNPDp1Tfhh4sWpBAhIF-Yhn8"  # Replace this with your Gemini API key
@@ -37,22 +38,34 @@ section = st.sidebar.radio("Go to", [
 @st.cache_resource
 def load_all_models():
     try:
-        model_dir = r"C:\Users\deepa\Downloads"  # Local path for model files
-        model_paths = {
-            "master": os.path.join(model_dir, "MasterCategories_model.keras"),
-            "subtype": os.path.join(model_dir, "Subtypes_model.keras"),
-            "morph": os.path.join(model_dir, "MorphologicalFeatures_model.keras"),
-            "factors": os.path.join(model_dir, "FunctionalFactors_model.keras"),
-            "realworld": os.path.join(model_dir, "RealWorldUsage_model.keras")
+        # Ensure models/ folder exists
+        os.makedirs("models", exist_ok=True)
+
+        # Mapping of model names to Google Drive file IDs
+        model_files = {
+            "MasterCategories_model.keras": "1TE8cMcmI9HIKINYSVqSCWXx-sNR6FmlI",
+            "Subtypes_model.keras": "1OcDmWXwPAz-_-3GNN_OGCkKCUqdkm18Z",
+            "MorphologicalFeatures_model.keras ": "1nCSYG8b0nrArMhdHV2JoO43E91kjSjTF",
+            "FunctionalFactors_model.keras": "1MTbld9R0Vvm9sDcmuBB0gYqup4b3fILh",
+            "RealWorldUsage_model.keras": "1gkx3-cjRQX_VTGEynJItfY7qJRL4GGV6"  
         }
 
-        for key, path in model_paths.items():
-            if not os.path.exists(path):
-                st.error(f"❌ Missing model file: {path}")
-                st.stop()
+        # Download each model if it doesn’t exist
+        for filename, file_id in model_files.items():
+            filepath = os.path.join("models", filename)
+            if not os.path.exists(filepath):
+                url = f"https://drive.google.com/uc?id={file_id}"
+                print(f"Downloading {filename} from Google Drive...")
+                gdown.download(url, filepath, quiet=False)
 
-        return {key: load_model(path) for key, path in model_paths.items()}
-
+        # Load the models
+        return {
+            "master": load_model("models/MasterCategories_model.keras"),
+            "subtype": load_model("models/Subtypes_model.keras"),
+            "morph": load_model("models/MorphologicalFeatures_model.keras"),
+            "factors": load_model("models/FunctionalFactors_model.keras"),
+            "realworld": load_model("models/RealWorldUsage_model.keras")
+        }
     except Exception as e:
         st.error(f"❌ Model loading failed: {e}")
         st.stop()
