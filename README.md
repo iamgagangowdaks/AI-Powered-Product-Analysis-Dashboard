@@ -6,7 +6,7 @@ It integrates **TensorFlow models** for classification and **Gemini AI** for int
 
 ---
 ## 🚀 Live Demo  
-🤖 [Try it on Now]([Click on](https://ai-powered-appuct-analysis-dashboard-qdjsn4omomcpyqrgaupaag.streamlit.app/)
+🤖 [Try it on Now](https://ai-powered-appuct-analysis-dashboard-qdjsn4omomcpyqrgaupaag.streamlit.app/)
 
 
 ## 🚀 Features
