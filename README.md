@@ -69,7 +69,7 @@ AI-Product-Analysis/
 ### 1️⃣ Clone the repository
 
 ```bash
-git clone https://github.com/iamDeepakHR/AI-Product-Analysis-Dashboard.git
+git clone https://github.com/iamgagangowdaks/AI-Powered-Product-Analysis-Dashboard.git
 cd AI-Product-Analysis-Dashboard
 ```
 
